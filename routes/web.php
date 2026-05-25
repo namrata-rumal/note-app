@@ -39,7 +39,7 @@ Route::get('/create',function(){
 Route::post('/store', function (Request $request) {
 
     $request->validate([
-        'title' => 'required',
+         'title' => 'required|max:255',
         'content' => 'required'
     ]);
 

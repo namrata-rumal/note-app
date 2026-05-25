@@ -5,16 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Note;
-use DB;
 
 class NoteController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    // Notes List with Pagination
+    public function index(Request $request)
     {
-         $limit = $request->limit ?? 10;
+        $limit = $request->limit ?? 3;
 
         $notes = Note::latest()->paginate($limit);
 
@@ -25,49 +22,129 @@ class NoteController extends Controller
         ], 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    // Create Note
     public function store(Request $request)
     {
         $request->validate([
-            'titleNm' => 'required',
+            'title' => 'required|max:255',
             'content' => 'required'
         ]);
 
-        
-        $note=Note::create([
-            'title'=>$request->titleNm,
-            'content'=>$request->content
+        $note = Note::create([
+            'title' => $request->title,
+            'content' => $request->content
         ]);
 
         return response()->json([
-            'massage'=>'Note created',
-            'data'=>$note
+            'status' => true,
+            'message' => 'Note created successfully',
+            'data' => $note
         ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    // Single Note
+    public function show($id)
     {
-        //
+        $note = Note::find($id);
+
+        if (!$note) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Note not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $note
+        ], 200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    // Update Note
+    public function update(Request $request, $id)
     {
-        //
+        $note = Note::find($id);
+
+        if (!$note) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Note not found'
+            ], 404);
+        }
+
+        $request->validate([
+            'title' => 'required|max:255',
+            'content' => 'required'
+        ]);
+
+        $note->update([
+            'title' => $request->title,
+            'content' => $request->content
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Note updated successfully',
+            'data' => $note
+        ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    // Delete Note
+    public function destroy($id)
     {
-        //
+        $note = Note::find($id);
+
+        if (!$note) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Note not found'
+            ], 404);
+        }
+
+        $note->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Note deleted successfully'
+        ], 200);
+    }
+
+    // AI Summary
+    public function summary($id)
+    {
+        $note = Note::find($id);
+
+        if (!$note) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Note not found'
+            ], 404);
+        }
+
+        // Simple AI Summary Logic
+        $summary = substr(strip_tags($note->content), 0, 120);
+
+        $note->summary = $summary;
+        $note->save();
+
+        return response()->json([
+            'status' => true,
+            'summary' => $summary
+        ]);
+    }
+
+    // Semantic Search
+    public function semanticSearch(Request $request)
+    {
+        $query = $request->query;
+
+        $notes = Note::where('title', 'LIKE', "%$query%")
+            ->orWhere('content', 'LIKE', "%$query%")
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'results' => $notes
+        ]);
     }
 }
